@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>出納帳｜GOEN須坂</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="出納帳">
+<meta name="theme-color" content="#f7f5f1">
+<style>
+  :root{--ink:#2b2b2b;--sub:#6b6b6b;--line:#d9d4cc;--bg:#f7f5f1;--card:#fff;--accent:#3d5a4a;--warn:#b0472f;--in:#2f6f9f;}
+  *{box-sizing:border-box}
+  html,body{height:100%;overflow:hidden}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;font-size:18px;-webkit-text-size-adjust:100%}
+  .wrap{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;padding:24px 16px 55vh}
+  .wrap>*,.view>*{max-width:760px;margin-left:auto;margin-right:auto}
+  h1{font-size:26px;margin:8px 0 4px;letter-spacing:.15em;text-align:center}
+  .lead{text-align:center;color:var(--sub);font-size:15px;margin:0 0 20px;line-height:1.6}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px 22px;margin-bottom:18px}
+  .card h2{font-size:15px;margin:0 0 4px;color:var(--accent);letter-spacing:.05em}
+  label{display:block;font-size:15px;color:var(--sub);margin:14px 0 6px}
+  .req::after{content:"必須";font-size:11px;background:var(--warn);color:#fff;border-radius:4px;padding:1px 6px;margin-left:8px;vertical-align:2px}
+  select{width:100%;font-size:20px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font-family:inherit;-webkit-appearance:none;appearance:none;background-image:linear-gradient(45deg,transparent 50%,#888 50%),linear-gradient(135deg,#888 50%,transparent 50%);background-position:calc(100% - 22px) 50%,calc(100% - 16px) 50%;background-size:6px 6px;background-repeat:no-repeat}
+  input[type=text],input[type=tel],textarea{width:100%;font-size:20px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font-family:inherit;-webkit-appearance:none}
+  textarea{min-height:84px;resize:vertical}
+  .check{display:flex;gap:12px;align-items:flex-start;margin-top:18px;font-size:18px;line-height:1.6}
+  .check input{width:28px;height:28px;flex:none;margin-top:2px}
+  .sigbox{position:relative;border:2px dashed var(--line);border-radius:12px;background:#fff;height:220px;touch-action:none}
+  #sig{width:100%;height:100%;display:block;border-radius:12px;touch-action:none}
+  .sighint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#bbb;pointer-events:none;font-size:18px}
+  .row{display:flex;justify-content:flex-end;margin-top:8px}
+  .modes{display:flex;gap:10px;margin-bottom:14px}
+  .mode{flex:1;padding:14px 0;font-size:20px;font-weight:bold;background:#fff;border:2px solid var(--accent);color:var(--accent)}
+  .mode.on{background:var(--accent);color:#fff}
+  .chips{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap}
+  .chip{flex:1;background:#fff;border:1px solid var(--accent);color:var(--accent);padding:12px 0;font-size:20px;font-weight:bold}
+  .chip.on{background:var(--accent);color:#fff}
+  .amt{text-align:right;font-weight:bold}
+  button{font-family:inherit;border-radius:12px;border:none;cursor:pointer}
+  .btn-sub{background:#fff;border:1px solid var(--line);padding:8px 18px;color:var(--sub);font-size:16px}
+  .btn-main{display:block;width:100%;background:var(--accent);color:#fff;padding:18px;font-size:22px;font-weight:bold;letter-spacing:.1em}
+  .btn-main:disabled{background:#b8c2bc}
+  .msg{color:var(--warn);font-size:15px;margin-top:10px;min-height:1.2em;text-align:center}
+  #done{display:none;position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;text-align:center;padding:60px 16px}
+  #done .mark{font-size:60px;color:var(--accent);line-height:1}
+  #done p{line-height:1.7}
+  #done .file{font-size:14px;color:var(--sub);word-break:break-all}
+  .overlay{position:fixed;inset:0;z-index:10;background:rgba(247,245,241,.9);display:none;align-items:center;justify-content:center;font-size:20px}
+  /* 出納帳 */
+  .bal{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap}
+  .bal .lbl{font-size:14px;color:var(--sub)}.bal .num{font-size:40px;font-weight:bold;letter-spacing:.02em}
+  .bal .sub{font-size:14px;color:var(--sub);text-align:right;line-height:1.6}
+  .btns{display:flex;gap:10px;margin-top:14px}
+  .btn{flex:1;padding:16px 0;font-size:19px;font-weight:bold;border:2px solid var(--accent);color:var(--accent);background:#fff}
+  .btn.main{background:var(--accent);color:#fff}
+  .countbox{margin-top:14px;padding:14px;border:2px solid var(--warn);border-radius:12px;background:#fff7f4}
+  .countbox .t{font-weight:bold;color:var(--warn);margin-bottom:8px}
+  .field{display:flex;gap:10px;margin-top:8px}
+  .field>*{flex:1}
+  .kinds{display:flex;gap:10px;margin:10px 0}
+  .k{flex:1;padding:14px 0;border:2px solid var(--line);border-radius:12px;background:#fff;font-size:20px;font-weight:bold;color:var(--ink)}
+  .k.on{border-color:var(--accent);background:var(--accent);color:#fff}
+  .tbl{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:15px}
+  th,td{padding:9px 6px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+  th{color:var(--sub);font-weight:normal;font-size:13px}
+  td.r,th.r{text-align:right}.in{color:var(--in)}.out{color:var(--warn)}
+  tr.dim td{color:#999}
+  tr.x td{color:#999;text-decoration:line-through}
+  .cancel{background:#fff;border:1px solid var(--line);color:var(--sub);font-size:13px;padding:4px 8px;border-radius:8px}
+  .foot{font-size:13px;color:var(--sub);margin-top:8px;line-height:1.6}
+  .foot a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap" id="formView">
+  <div class="modes"><button type="button" class="mode on" data-kind="refund">送料返金</button><button type="button" class="mode" data-kind="purchase">現金購入</button><button type="button" class="mode" data-kind="cash">出納帳</button></div>
+
+  <div class="view" id="receiptView">
+  <h1 id="ttl">受領書（送料返金分）</h1>
+  <p class="lead" id="lead">お引き取りありがとうございます。<br>送料の返金をお渡しします。金額をご確認のうえ、ご住所・お名前・ご署名をお願いいたします。</p>
+
+  <div class="card">
+    <h2>スタッフ記入欄</h2>
+    <div id="pickupBox" style="display:none">
+      <label for="pickupSel">引き取り予定から選ぶ（須坂サーバーで「直接引き取り」にチェックした商品）</label>
+      <select id="pickupSel"><option value="">— 選んでください —</option></select>
+    </div>
+    <label class="req" for="auctionId">出品番号（うちの番号）</label>
+    <div class="field" style="margin-top:0"><input type="text" id="auctionId" inputmode="latin" autocomplete="off" enterkeyhint="search" placeholder="例）ya853"><button type="button" class="btn main" id="lookupBtn" style="flex:0 0 130px">照会</button></div>
+    <div class="msg" id="lookupMsg" style="text-align:left;min-height:0"></div>
+    <label for="itemName">商品名</label>
+    <input type="text" id="itemName" autocomplete="off" enterkeyhint="next">
+    <label for="bidderId">落札者ID</label>
+    <input type="text" id="bidderId" inputmode="latin" autocomplete="off" enterkeyhint="next">
+    <label class="req" for="amount" id="amtLabel">返金額（送料分・円）</label>
+    <input type="text" id="amount" class="amt" inputmode="numeric" autocomplete="off" enterkeyhint="next" placeholder="例）1000">
+    <div class="chips" id="chips"><button type="button" class="chip" data-amt="800">800円</button><button type="button" class="chip" data-amt="1000">1,000円</button></div>
+    <label for="staff">受け渡し担当</label>
+    <select id="staff"><option value="">担当者を選ぶ</option><option>竹前</option><option>傳田</option><option>山際</option><option>久保田</option><option>小口拓</option></select>
+  </div>
+
+  <div class="card">
+    <h2>お客様記入欄</h2>
+    <label class="req" for="address">ご住所</label>
+    <textarea id="address" autocomplete="off"></textarea>
+    <label class="req" for="name">お名前</label>
+    <input type="text" id="name" autocomplete="off" enterkeyhint="next">
+    <label for="tel">電話番号（任意）</label>
+    <input type="tel" id="tel" autocomplete="off" enterkeyhint="done">
+
+    <label class="check"><input type="checkbox" id="agreed"><span id="checkText">上記の商品を受け取り、送料の返金として上記金額を現金で受領しました。</span></label>
+
+    <label class="req">ご署名</label>
+    <div class="sigbox">
+      <canvas id="sig"></canvas>
+      <div class="sighint" id="sighint">ここに指でサインしてください</div>
+    </div>
+    <div class="row"><button type="button" class="btn-sub" id="clearBtn">サインを書き直す</button></div>
+  </div>
+
+  <button type="button" class="btn-main" id="submitBtn" disabled>送信する</button>
+  <div class="msg" id="msg"></div>
+  </div>
+
+  <div class="view" id="cashView" style="display:none">
+    <div class="card">
+      <div class="bal">
+        <div><div class="lbl" id="cashLbl">いまの現金残高</div><div class="num" id="cashBal">—</div></div>
+        <div class="sub" id="cashSub"></div>
+      </div>
+      <div class="countbox" id="countBox" style="display:none">
+        <div class="t">今週の現金を数えてください</div>
+        <div class="field"><input type="text" id="counted" class="amt" inputmode="numeric" placeholder="数えた額（円）"><button type="button" class="btn main" id="countBtn">数えた額を記録</button></div>
+      </div>
+      <div class="btns">
+        <button type="button" class="btn main" id="noChangeBtn">✓ 本日の動きなし</button>
+        <button type="button" class="btn" id="openEntryBtn">＋ 入金・出金を書く</button>
+      </div>
+      <div class="msg" id="cashMsg"></div>
+    </div>
+
+    <div class="card" id="entryCard" style="display:none">
+      <h2>入金・出金を書く</h2>
+      <div class="kinds" id="typeKinds"><button type="button" class="k on" data-type="入金">入金</button><button type="button" class="k" data-type="出金">出金</button></div>
+      <div class="kinds" id="catKinds"></div>
+      <div class="field"><input type="text" id="cashAmount" class="amt" inputmode="numeric" placeholder="金額（円）"><input type="text" id="cashMemo" placeholder="摘要（例：レジ売上、ガソリン代）"></div>
+      <div class="field"><select id="cashStaff"><option value="">担当者を選ぶ</option><option>竹前</option><option>傳田</option><option>山際</option><option>久保田</option><option>小口拓</option></select><button type="button" class="btn main" id="entryBtn">記帳する</button></div>
+    </div>
+
+    <div class="card">
+      <h2 id="cashMonth">出納帳</h2>
+      <div class="tbl"><table id="cashTable"></table></div>
+      <div class="foot">「送料返金」「現金購入」の受領書を送信すると、自動でここに1行入ります。間違えた行は「取消」で打ち消し行を足します（消しません）。<br>
+        <a id="sheetLink" href="#" target="_blank">スプレッドシートを開く</a>　／　<a id="pdfLink" href="#">今月分をPDFにして40_へ置く</a></div>
+    </div>
+  </div>
+</div>
+
+<div id="done">
+  <div class="mark">✓</div>
+  <p><strong>保存しました。</strong><br>ご協力ありがとうございました。</p>
+  <p class="file" id="doneFile"></p>
+  <p class="msg" id="doneWarn"></p>
+  <button type="button" class="btn-main" id="nextBtn" style="max-width:420px">次の受け取りへ</button>
+</div>
+
+<div class="overlay" id="overlay">保存しています…</div>
+
+<script>
+// ===== GASを裏方として呼ぶための橋渡し（google.script.run と同じ書き方で使える） =====
+(function(){
+  var GAS_URL = 'https://script.google.com/macros/s/AKfycbwC9BoXToft504U_NcuvSNXGkG8XvmkSrD-os99yqUmOAzSYGOn9htZNI7rya8iBHqLYg/exec';
+  function runner(){
+    var ok = function(){}, ng = function(){};
+    var p = new Proxy({}, { get: function(_, name){
+      if(name === 'withSuccessHandler') return function(f){ ok = f; return p; };
+      if(name === 'withFailureHandler') return function(f){ ng = f; return p; };
+      return function(){
+        var args = Array.prototype.slice.call(arguments);
+        fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ fn: name, args: args }) })
+          .then(function(r){ return r.json(); })
+          .then(function(j){ if(j && j.ok) ok(j.result); else ng(new Error((j && j.error) || '不明なエラー')); })
+          .catch(function(e){ ng(new Error('通信できませんでした：' + (e && e.message ? e.message : e))); });
+      };
+    }});
+    return p;
+  }
+  window.google = { script: { run: new Proxy({}, { get: function(_, name){ return runner()[name]; } }) } };
+})();
+</script>
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var cv = $('sig'), ctx = cv.getContext('2d');
+  var drawing = false, hasSig = false, last = null;
+  var hasGoogle = (typeof google !== 'undefined' && google.script);
+
+  function setupCanvas(){
+    var r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    if(r.width === 0) return; // 非表示中は何もしない
+    cv.width = Math.round(r.width * dpr);
+    cv.height = Math.round(r.height * dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#111';
+    hasSig = false; $('sighint').style.display = 'flex'; validate();
+  }
+  function pos(e){ var r = cv.getBoundingClientRect(); return {x:e.clientX - r.left, y:e.clientY - r.top}; }
+  cv.addEventListener('pointerdown', function(e){
+    e.preventDefault(); drawing = true; last = pos(e);
+    try{ cv.setPointerCapture(e.pointerId); }catch(_){}
+    ctx.beginPath(); ctx.arc(last.x, last.y, 1.2, 0, Math.PI*2); ctx.fillStyle='#111'; ctx.fill();
+    if(!hasSig){ hasSig = true; $('sighint').style.display='none'; validate(); }
+  });
+  cv.addEventListener('pointermove', function(e){
+    if(!drawing) return; e.preventDefault();
+    var p = pos(e); ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(p.x,p.y); ctx.stroke(); last = p;
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(function(t){ cv.addEventListener(t, function(){ drawing = false; }); });
+  $('clearBtn').addEventListener('click', function(){ ctx.clearRect(0,0,cv.width,cv.height); setupCanvas(); });
+  window.addEventListener('resize', function(){ if(!hasSig) setupCanvas(); });
+
+  // キーボードの「次へ」で次の欄へ。最後の欄は「完了」でキーボードを閉じる
+  var order = ['auctionId','itemName','bidderId','amount','name','tel'];
+  order.forEach(function(id, i){
+    $(id).addEventListener('keydown', function(e){
+      if(e.key !== 'Enter') return;
+      e.preventDefault();
+      if(id === 'auctionId'){ $(id).blur(); doLookup(); return; }
+      var nextId = (id === 'amount') ? null : order[i+1];
+      if(nextId) $(nextId).focus(); else $(id).blur();
+    });
+  });
+  // 入力欄以外に触れたらキーボードを閉じる（送信ボタンまで指で動かせるように）
+  document.addEventListener('touchstart', function(e){
+    var a = document.activeElement;
+    if(!a || !(a.tagName === 'INPUT' || a.tagName === 'TEXTAREA')) return;
+    if(e.target.closest && e.target.closest('input,textarea')) return;
+    a.blur();
+  }, {passive:true});
+
+  // 種類の切り替え（送料返金／現金購入／出納帳）
+  var KINDS = {
+    refund:   { h1:'受領書（送料返金分）', lead:'お引き取りありがとうございます。<br>送料の返金をお渡しします。金額をご確認のうえ、ご住所・お名前・ご署名をお願いいたします。',
+                amt:'返金額（送料分・円）', check:'上記の商品を受け取り、送料の返金として上記金額を現金で受領しました。', chips:true },
+    purchase: { h1:'受領書（現金購入分）', lead:'お買い上げありがとうございます。<br>商品と金額をご確認のうえ、ご住所・お名前・ご署名をお願いいたします。',
+                amt:'お支払い金額（商品代金・円）', check:'上記の商品を受け取り、商品代金として上記金額を現金で支払いました。', chips:false }
+  };
+  var kind = 'refund';
+  function applyKind(k){
+    kind = (KINDS[k] || k === 'cash') ? k : 'refund';
+    Array.prototype.forEach.call(document.querySelectorAll('.mode'), function(b){ b.classList.toggle('on', b.getAttribute('data-kind') === kind); });
+    try{ localStorage.setItem('goen_kind', kind); }catch(_){}
+    if(kind === 'cash'){
+      $('receiptView').style.display = 'none'; $('cashView').style.display = 'block';
+      loadCash();
+      return;
+    }
+    var t = KINDS[kind];
+    $('cashView').style.display = 'none'; $('receiptView').style.display = 'block';
+    $('ttl').textContent = t.h1; $('lead').innerHTML = t.lead; $('amtLabel').textContent = t.amt;
+    $('checkText').textContent = t.check; $('chips').style.display = t.chips ? 'flex' : 'none';
+    if(!hasSig) setupCanvas();
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.mode'), function(b){
+    b.addEventListener('click', function(){ applyKind(b.getAttribute('data-kind')); });
+  });
+
+  // 須坂サーバーに出品番号で照会 → 商品名などを自動で入れる
+  function doLookup(){
+    var code = val('auctionId');
+    if(!code){ $('lookupMsg').textContent = '出品番号を入れてから「照会」を押してください。'; return; }
+    if(!hasGoogle){ $('lookupMsg').textContent = '（見た目の確認用：本番では須坂サーバーに照会します）'; return; }
+    busy(true, '須坂サーバーに照会しています…');
+    google.script.run
+      .withSuccessHandler(function(r){
+        busy(false);
+        if(!r || !r.found){ $('lookupMsg').textContent = '「' + code + '」は見つかりませんでした。手で入力してください。'; return; }
+        var got = [];
+        if(r.title){ $('itemName').value = r.title + (r.yahooAuctionId ? '（ヤフオク ' + r.yahooAuctionId + '）' : ''); got.push('商品名'); }
+        if(r.bidderId){ $('bidderId').value = r.bidderId; got.push('落札者ID'); }
+        var amt = (kind === 'purchase') ? r.soldPrice : r.shippingFee;
+        if(amt > 0){ $('amount').value = String(amt); got.push(kind === 'purchase' ? '商品代金' : '送料'); }
+        if(r.address){ $('address').value = r.address; got.push('住所'); }
+        if(r.name){ $('name').value = r.name; got.push('お名前'); }
+        if(r.tel){ $('tel').value = r.tel; got.push('電話'); }
+        $('lookupMsg').style.color = '#3d5a4a';
+        $('lookupMsg').textContent = '読み込みました：' + (got.length ? got.join('・') : '該当あり（自動で入る項目なし）') + (r.status ? '　［' + r.status + '］' : '');
+        validate();
+      })
+      .withFailureHandler(function(err){ busy(false); $('lookupMsg').style.color = ''; $('lookupMsg').textContent = '照会できませんでした：' + (err && err.message ? err.message : err); })
+      .mekikiLookup(code);
+  }
+  $('lookupBtn').addEventListener('click', doLookup);
+
+  // 引き取り予定の一覧（プルダウン）。APIが無い間は表示されない
+  var pickups = [];
+  function loadPickups(){
+    if(!hasGoogle) return;
+    google.script.run
+      .withSuccessHandler(function(r){
+        if(!r || !r.available){ $('pickupBox').style.display = 'none'; return; }
+        pickups = r.items || [];
+        var sel = $('pickupSel'); sel.innerHTML = '<option value="">— 選んでください —（' + pickups.length + '件）</option>';
+        pickups.forEach(function(it, i){
+          var o = document.createElement('option'); o.value = String(i);
+          o.textContent = (it.kind === 'purchase' ? '【現金購入】' : '【送料返金】') + it.productCode + '　' + (it.name ? it.name + '様　' : '') + it.title.slice(0, 28);
+          sel.appendChild(o);
+        });
+        $('pickupBox').style.display = pickups.length ? 'block' : 'none';
+      })
+      .withFailureHandler(function(){ $('pickupBox').style.display = 'none'; })
+      .mekikiPickups();
+  }
+  $('pickupSel').addEventListener('change', function(){
+    var it = pickups[Number($('pickupSel').value)]; if(!it) return;
+    if(it.kind !== kind) applyKind(it.kind);
+    $('auctionId').value = it.productCode;
+    $('itemName').value = it.title + (it.yahooAuctionId ? '（ヤフオク ' + it.yahooAuctionId + '）' : '');
+    $('bidderId').value = it.bidderId; $('name').value = it.name; $('address').value = it.address; $('tel').value = it.tel;
+    var amt = (it.kind === 'purchase') ? it.soldPrice : it.shippingFee;
+    $('amount').value = amt > 0 ? String(amt) : '';
+    $('lookupMsg').style.color = '#3d5a4a'; $('lookupMsg').textContent = '引き取り予定から読み込みました。金額と内容を確認して、お客様にサインをもらってください。';
+    validate();
+  });
+  loadPickups();
+  $('auctionId').addEventListener('input', function(){ $('lookupMsg').textContent = ''; $('lookupMsg').style.color = ''; });
+
+  // 金額ボタン（800円・1,000円）
+  Array.prototype.forEach.call(document.querySelectorAll('#chips .chip'), function(b){
+    b.addEventListener('click', function(){ $('amount').value = b.getAttribute('data-amt'); validate(); });
+  });
+  function amountVal(){ var n = Number(val('amount').replace(/[^\d]/g,'')); return (n > 0 && n < 1000000) ? n : 0; }
+
+  var savedStaff = '';
+  try{ savedStaff = localStorage.getItem('goen_staff') || ''; }catch(_){}
+  if(savedStaff){ $('staff').value = savedStaff; $('cashStaff').value = savedStaff; }
+  ['staff','cashStaff'].forEach(function(id){ $(id).addEventListener('change', function(){ rememberStaff($(id).value); }); });
+  function rememberStaff(v){ v = (v || '').trim(); if(!v) return; try{ localStorage.setItem('goen_staff', v); }catch(_){} $('staff').value = v; $('cashStaff').value = v; }
+
+  function val(id){ return $(id).value.trim(); }
+  function validate(){
+    var ok = val('auctionId') && amountVal() && val('address') && val('name') && $('agreed').checked && hasSig;
+    $('submitBtn').disabled = !ok;
+    return ok;
+  }
+  ['auctionId','amount','address','name','agreed'].forEach(function(id){
+    $(id).addEventListener('input', validate); $(id).addEventListener('change', validate);
+  });
+
+  function sigData(){
+    var out = document.createElement('canvas');
+    out.width = cv.width; out.height = cv.height;
+    var o = out.getContext('2d'); o.fillStyle = '#fff'; o.fillRect(0,0,out.width,out.height); o.drawImage(cv,0,0);
+    return out.toDataURL('image/png');
+  }
+
+  function busy(on, text){ $('overlay').textContent = text || '保存しています…'; $('overlay').style.display = on ? 'flex' : 'none'; }
+
+  $('submitBtn').addEventListener('click', function(){
+    if(!validate()) return;
+    if(!hasGoogle){ $('msg').textContent = 'これは見た目の確認用です（実際の保存はiPadの本番画面で行います）'; return; }
+    $('submitBtn').disabled = true; $('msg').textContent = ''; busy(true);
+    rememberStaff(val('staff'));
+    var data = {
+      kind: kind, auctionId: val('auctionId'), itemName: val('itemName'), bidderId: val('bidderId'), amount: amountVal(),
+      address: val('address'), name: val('name'), tel: val('tel'), staff: val('staff'),
+      agreed: $('agreed').checked, sig: sigData(), sigW: cv.width, sigH: cv.height
+    };
+    google.script.run
+      .withSuccessHandler(function(r){
+        busy(false);
+        $('doneFile').textContent = r.folderPath + ' に「' + r.fileName + '」を保存';
+        $('doneWarn').textContent = r.cashWarn || '';
+        $('formView').style.display = 'none'; $('done').style.display = 'block'; window.scrollTo(0,0);
+      })
+      .withFailureHandler(function(err){
+        busy(false); validate();
+        $('msg').textContent = '保存できませんでした：' + (err && err.message ? err.message : err) + '　もう一度「送信する」を押してください。';
+      })
+      .saveReceipt(data);
+  });
+
+  $('nextBtn').addEventListener('click', function(){
+    ['auctionId','itemName','bidderId','amount','address','name','tel'].forEach(function(id){ $(id).value = ''; });
+    $('agreed').checked = false; $('msg').textContent = '';
+    $('done').style.display = 'none'; $('formView').style.display = 'block';
+    $('lookupMsg').textContent = ''; $('pickupSel').value = '';
+    setupCanvas(); window.scrollTo(0,0);
+    loadPickups();
+  });
+
+  // ===== 出納帳 =====
+  var CATS = { '入金': ['現金販売','その他'], '出金': ['経費','オークファン','その他'] };
+  var entryType = '入金', entryCat = CATS['入金'][0];
+  function fmt(n){ return '¥' + String(Math.floor(Number(n)||0)).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+  function fmtN(n){ return n ? String(Math.floor(Number(n))).replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''; }
+
+  function renderCats(){
+    var box = $('catKinds'); box.innerHTML = '';
+    if(CATS[entryType].indexOf(entryCat) < 0) entryCat = CATS[entryType][0];
+    CATS[entryType].forEach(function(c){
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'k' + (c === entryCat ? ' on' : ''); b.textContent = c;
+      b.addEventListener('click', function(){ entryCat = c; renderCats(); });
+      box.appendChild(b);
+    });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('#typeKinds .k'), function(b){
+    b.addEventListener('click', function(){
+      entryType = b.getAttribute('data-type');
+      Array.prototype.forEach.call(document.querySelectorAll('#typeKinds .k'), function(x){ x.classList.toggle('on', x === b); });
+      renderCats();
+    });
+  });
+  renderCats();
+
+  function renderCash(s){
+    $('cashLbl').textContent = 'いまの現金残高（' + s.today.replace(/\//g,'/') + '）';
+    $('cashBal').textContent = fmt(s.balance);
+    $('cashSub').innerHTML = '今日の入金 ' + fmt(s.todayIn) + '<br>今日の出金 ' + fmt(s.todayOut) + '<br>' +
+      (s.lastCount ? '最後に数えた日：' + s.lastCount.date.slice(5) + '（' + (s.lastCount.diff === 0 ? '差額なし' : '差額 ' + fmt(s.lastCount.diff)) + '）' : 'まだ現金を数えていません');
+    $('countBox').style.display = s.needCount ? 'block' : 'none';
+    $('cashMonth').textContent = s.ym + 'の出納帳';
+    $('sheetLink').href = s.sheetUrl;
+    var h = '<tr><th>日付</th><th>区分</th><th>科目</th><th>摘要</th><th class="r">入金</th><th class="r">出金</th><th class="r">残高</th><th>担当</th><th></th></tr>';
+    s.rows.forEach(function(r){
+      var cls = (r.type === '確認' || r.type === '実査' || r.type === '繰越') ? 'dim' : (r.cancelled ? 'x' : '');
+      var memo = r.memo;
+      if(r.type === '実査' && r.counted !== null) memo += '　数えた額 ' + fmt(r.counted) + (r.diff === 0 ? '（差額なし）' : '（差額 ' + fmt(r.diff) + '）');
+      var canCancel = (r.type === '入金' || r.type === '出金') && !r.cancelled;
+      h += '<tr class="' + cls + '"><td>' + r.date.slice(5) + '</td><td>' + r.type + '</td><td>' + r.category + '</td><td style="white-space:normal">' + esc(memo) + '</td>' +
+        '<td class="r in">' + fmtN(r.inAmt) + '</td><td class="r out">' + fmtN(r.outAmt) + '</td><td class="r">' + fmtN(r.balance) + '</td><td>' + esc(r.staff) + '</td>' +
+        '<td>' + (canCancel ? '<button type="button" class="cancel" data-id="' + r.id + '">取消</button>' : '') + '</td></tr>';
+    });
+    $('cashTable').innerHTML = h;
+    Array.prototype.forEach.call(document.querySelectorAll('#cashTable .cancel'), function(b){
+      b.addEventListener('click', function(){
+        if(!confirm('この行を取消しますか？（打ち消しの行が追加されます）')) return;
+        callCash('cashCancel', { id: b.getAttribute('data-id'), staff: val('cashStaff') }, '取消しています…');
+      });
+    });
+  }
+  function esc(s){ return String(s || '').replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+  function callCash(fn, arg, text){
+    $('cashMsg').textContent = '';
+    if(!hasGoogle){ renderCash(DEMO); $('cashMsg').textContent = '（見た目の確認用：本番では ' + fn + ' が動きます）'; return; }
+    busy(true, text || '読み込んでいます…');
+    var runner = google.script.run
+      .withSuccessHandler(function(s){ busy(false); if(typeof s === 'string'){ $('cashMsg').textContent = s; loadCash(); } else renderCash(s); })
+      .withFailureHandler(function(err){ busy(false); $('cashMsg').textContent = (err && err.message ? err.message : err); });
+    if(arg === undefined) runner[fn](); else runner[fn](arg);
+  }
+  function loadCash(){ callCash('cashGetState'); }
+
+  $('noChangeBtn').addEventListener('click', function(){
+    rememberStaff(val('cashStaff'));
+    callCash('cashConfirm', { staff: val('cashStaff') }, '記帳しています…');
+  });
+  $('countBtn').addEventListener('click', function(){
+    var n = Number(val('counted').replace(/[^\d]/g,''));
+    if(!val('counted') || isNaN(n)){ $('cashMsg').textContent = '数えた額を入れてください。'; return; }
+    rememberStaff(val('cashStaff'));
+    callCash('cashConfirm', { staff: val('cashStaff'), counted: n }, '記帳しています…');
+    $('counted').value = '';
+  });
+  $('openEntryBtn').addEventListener('click', function(){
+    var c = $('entryCard'); c.style.display = (c.style.display === 'none') ? 'block' : 'none';
+    if(c.style.display === 'block') $('cashAmount').focus();
+  });
+  $('entryBtn').addEventListener('click', function(){
+    var n = Number(val('cashAmount').replace(/[^\d]/g,''));
+    if(!(n > 0)){ $('cashMsg').textContent = '金額を入れてください。'; return; }
+    rememberStaff(val('cashStaff'));
+    callCash('cashAddEntry', { type: entryType, category: entryCat, amount: n, memo: val('cashMemo'), staff: val('cashStaff') }, '記帳しています…');
+    $('cashAmount').value = ''; $('cashMemo').value = ''; $('entryCard').style.display = 'none';
+  });
+  $('pdfLink').addEventListener('click', function(e){
+    e.preventDefault();
+    if(!confirm('今月分の出納帳をPDFにして「40_現金出納根拠資料」へ置きますか？')) return;
+    callCash('cashExportThisMonth', undefined, 'PDFを作っています…');
+  });
+
+  // 見た目の確認用のダミー（本番では使われない）
+  var DEMO = { ym:'2026年10月', today:'2026/10/29', balance:48200, todayIn:12000, todayOut:1000, needCount:true,
+    lastCount:{date:'2026/10/25', diff:0}, sheetUrl:'#',
+    rows:[{date:'2026/10/29',type:'入金',category:'現金販売',memo:'x1234567 現金購入 ○○様',inAmt:12000,outAmt:0,balance:48200,staff:'竹前',id:'a',counted:null,diff:null,cancelled:false},
+          {date:'2026/10/29',type:'出金',category:'送料返金',memo:'x9876543 送料返金 △△様',inAmt:0,outAmt:1000,balance:36200,staff:'竹前',id:'b',counted:null,diff:null,cancelled:false},
+          {date:'2026/10/28',type:'確認',category:'',memo:'動きなし（残高確認）',inAmt:0,outAmt:0,balance:37200,staff:'竹前',id:'c',counted:null,diff:null,cancelled:false},
+          {date:'2026/10/01',type:'繰越',category:'',memo:'開始残高',inAmt:0,outAmt:0,balance:10000,staff:'',id:'d',counted:null,diff:null,cancelled:false}] };
+
+  try{ applyKind(localStorage.getItem('goen_kind') || 'refund'); }catch(_){ applyKind('refund'); }
+  window.addEventListener('load', function(){ if(kind !== 'cash') setupCanvas(); });
+  if(document.readyState === 'complete' && kind !== 'cash') setupCanvas();
+})();
+</script>
+</body>
+</html>
